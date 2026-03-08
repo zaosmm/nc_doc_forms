@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<info>
+    <id>nc_doc_forms</id>
+    <name>WebServer Document Forms App</name>
+    <summary>Формы генерации служебных документов</summary>
+    <description>Формы генерации служебных документов</description>
+    <version>1.0.0</version>
+    <licence>agpl</licence>
+    <author mail="u0827@zaosmm.ru">Мезенцев Павел Викентьевич</author>
+    <namespace>WebServerSignDocApp</namespace>
+    <category>tools</category>
+
+
+    <dependencies>
+        <nextcloud min-version="26" max-version="33"/>
+        <python min-version="3.8" max-version="3.12"/>
+    </dependencies>
+
+	<website>https://github.com/zaosmm/nc_doc_forms</website>
+	<bugs>https://github.com/zaosmm/nc_doc_forms/issues</bugs>
+	<repository type="git">https://github.com/zaosmm/nc_doc_forms</repository>
+
+    <external-app>
+        <docker-install>
+            <registry>ghcr.io</registry>
+            <image>zaosmm/nc_doc_forms</image>
+            <image-tag>latest</image-tag>
+        </docker-install>
+
+        <routes>
+            <route>
+                <url>.*</url>
+                <verb>GET,POST,PUT,DELETE,OPTIONS</verb>
+                <access_level>USER</access_level>
+                <headers_to_exclude>[]</headers_to_exclude>
+                <bruteforce_protection>[401, 500]</bruteforce_protection>
+            </route>
+            <route>
+                <url>/.*</url>
+                <verb>GET,POST,PUT,DELETE,OPTIONS</verb>
+                <access_level>USER</access_level>
+                <headers_to_exclude>[]</headers_to_exclude>
+                <bruteforce_protection>[401, 500]</bruteforce_protection>
+            </route>
+            <route>
+                <url>/</url>
+                <verb>GET,OPTIONS</verb>
+                <access_level>USER</access_level>
+                <headers_to_exclude>[]</headers_to_exclude>
+                <bruteforce_protection>[401, 500]</bruteforce_protection>
+            </route>
+        </routes>
+
+    </external-app>
+    <commands>
+        <command>python3 main.py</command>
+    </commands>
+</info>
