@@ -4,6 +4,8 @@ import Forms from './components/Forms'
 import Vacation from './components/Vacation'
 import {Toaster} from 'react-hot-toast';
 import './App.css';
+import DayOff from "./components/DayOff";
+import BusinessTrip from "./components/BusinessTrip";
 
 const App: React.FC = () => {
     return (
@@ -22,6 +24,8 @@ const App: React.FC = () => {
             <Routes>
                 <Route path="/" element={<Forms/>}/>
                 <Route path="/vacation" element={<Vacation/>}/>
+                <Route path="/business-trip" element={<BusinessTrip/>}/>
+                <Route path="/day-off" element={<DayOff/>}/>
             </Routes>
         </Router>);
 }

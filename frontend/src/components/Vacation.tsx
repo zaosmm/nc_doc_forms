@@ -55,7 +55,7 @@ const Vacation: React.FC = () => {
             <div className="vacation-container">
                 <h1>Заявление на отпуск</h1>
 
-                <form onSubmit={handleSubmit} className="vacation-form">
+                <form className="vacation-form">
                     {/* Тип отпуска */}
                     <div className="form-group">
                         <label htmlFor="vacationType">Тип отпуска *</label>
@@ -144,8 +144,9 @@ const Vacation: React.FC = () => {
                             Отмена
                         </button>
                         <button
-                            type="submit"
+                            type="button"
                             className="btn btn-primary"
+                            onClick={handleSubmit}
                             disabled={!formData.startDate || !formData.endDate}
                         >
                             Отправить заявление

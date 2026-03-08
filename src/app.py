@@ -90,6 +90,6 @@ async def index(data: vacation.Data,
 
     return JSONResponse(content={
         'status': 'ok',
-        'user': user_info,
-        'data': data.model_dump_json()
+        'user': user_info._raw_data,
+        'data': data.model_dump()
     })
