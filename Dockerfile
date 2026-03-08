@@ -68,8 +68,13 @@ RUN set -eux; \
 
 WORKDIR /app
 
+# Создаём нужные директории с правильными правами
+RUN mkdir -p /app/templates
+
 COPY --from=frontend_builder /frontend/build/static ./static
-COPY --from=frontend_builder /frontend/build/index.html ./index.html
+COPY --from=frontend_builder /frontend/build/index.html /app/templates/index.html
+
+RUN chown -R $USER:$USER /app/templates
 
 # Создание необходимых директорий
 RUN mkdir -p /certs/frp /tmp && \
@@ -84,11 +89,5 @@ RUN chmod +x /start.sh && \
   chown -R $USER:$USER /app && \
   pip install -U pip && \
   pip install -r requirements.txt
-
-
-# Создаём нужные директории с правильными правами
-RUN mkdir -p /nc_app_nc_ws_sign_app_data/data && \
-    chmod -R 777 /nc_app_nc_ws_sign_app_data && \
-    chown -R $USER:$USER /nc_app_nc_ws_sign_app_data
 
 ENTRYPOINT ["/bin/sh", "-c", "exec gosu \"$USER\" /start.sh python3 main.py"]

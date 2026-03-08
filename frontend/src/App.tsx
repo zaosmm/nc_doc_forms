@@ -7,8 +7,7 @@ import './App.css';
 
 const App: React.FC = () => {
     return (
-        <Router>
-
+        <Router basename="/exapps/nc_doc_forms">
             <Toaster
                 position="top-right"
                 toastOptions={{
