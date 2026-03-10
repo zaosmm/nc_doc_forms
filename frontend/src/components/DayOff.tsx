@@ -8,7 +8,8 @@ import toast from 'react-hot-toast';
 const DayOff: React.FC = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
-        vacationType: "annual",
+        orderTypeIsVacation: false,
+        orderTypeIsChange: false,
         startDate: "",
         endDate: "",
         reqDate: format(new Date(), 'yyyy-MM-dd')
@@ -31,7 +32,8 @@ const DayOff: React.FC = () => {
                 date_from: formData.startDate,
                 date_to: formData.endDate,
                 date_req: formData.reqDate,
-                vacation_type: formData.vacationType,
+                order_type_is_vacation: formData.orderTypeIsVacation,
+                order_type_is_change: formData.orderTypeIsChange,
             });
             toast.success('Заявление составлено!');
         } catch (error) {

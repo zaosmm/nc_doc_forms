@@ -8,25 +8,37 @@ import toast from 'react-hot-toast';
 const Vacation: React.FC = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
-        vacationType: "annual",
+        orderTypeIsVacation: false,
+        orderTypeIsChange: false,
         startDate: "",
+        changeDate: "",
         endDate: "",
+        yearPeriod: format(new Date(), 'yyyy'),
         reqDate: format(new Date(), 'yyyy-MM-dd')
     });
 
     const [loading, setLoading] = useState<boolean>(false);
 
-    const vacationTypes = [
-        {id: "annual", label: "Ежегодный оплачиваемый отпуск"},
-        {id: "unpaid", label: "За свой счет (без сохранения заработной платы)"}
-    ];
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const {name, value} = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        if (name === 'orderTypeIsChange') {
+            let newVal = !formData.orderTypeIsChange
+            setFormData(prev => ({
+                ...prev,
+                [name]: newVal
+            }));
+        } else if (name === 'orderTypeIsVacation') {
+            let newVal = !formData.orderTypeIsVacation
+            setFormData(prev => ({
+                ...prev,
+                [name]: newVal
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
     };
 
     const handleSubmit = async () => {
@@ -36,7 +48,8 @@ const Vacation: React.FC = () => {
                 date_from: formData.startDate,
                 date_to: formData.endDate,
                 date_req: formData.reqDate,
-                vacation_type: formData.vacationType,
+                order_type_is_vacation: formData.orderTypeIsVacation,
+                order_type_is_change: formData.orderTypeIsChange,
             });
             toast.success('Заявление составлено!');
         } catch (error) {
@@ -58,53 +71,92 @@ const Vacation: React.FC = () => {
                 <form className="vacation-form">
                     {/* Тип отпуска */}
                     <div className="form-group">
-                        <label htmlFor="vacationType">Тип отпуска *</label>
-                        <div className="radio-group">
-                            {vacationTypes.map(type => (
-                                <label key={type.id} className="radio-label">
-                                    <input
-                                        type="radio"
-                                        name="vacationType"
-                                        value={type.id}
-                                        checked={formData.vacationType === type.id}
-                                        onChange={handleChange}
-                                    />
-                                    <span className="radio-custom"></span>
-                                    {type.label}
-                                </label>
-                            ))}
-                        </div>
+                        <label htmlFor="vacationType">Тип заявления *</label>
+                        <label className="checkbox-label">
+                            <input
+                                type="checkbox"
+                                name="orderTypeIsVacation"  // Теперь разные name
+                                checked={formData.orderTypeIsVacation}
+                                onChange={handleChange}  // Используем специальный обработчик
+                            />
+                            <span className="checkbox-custom"></span>
+                            Ежегодный оплачиваемый отпуск
+                        </label>
+                        <label className="checkbox-label">
+                            <input
+                                type="checkbox"
+                                name="orderTypeIsChange"  // Исправлено name
+                                checked={formData.orderTypeIsChange}
+                                onChange={handleChange}  // Тот же обработчик
+                            />
+                            <span className="checkbox-custom"></span>
+                            Перенос отпуска
+                        </label>
                     </div>
+
+                    {/* Перенос отпуска */}
+                    {formData.orderTypeIsChange && (
+                        <div className="change-group">
+                            <div className="form-group">
+                                <label htmlFor="changeDate">Перенести на дату *</label>
+                                <input
+                                    type="date"
+                                    id="changeDate"
+                                    name="changeDate"
+                                    value={formData.changeDate}
+                                    onChange={handleChange}
+                                    required
+                                    className="date-input"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="yearPeriod">Период отпуска *</label>
+                                <input
+                                    type="number"
+                                    id="yearPeriod"
+                                    name="yearPeriod"
+                                    value={formData.yearPeriod}
+                                    onChange={handleChange}
+                                    required
+                                    min={format(new Date(), 'yyyy')}
+                                    className="date-input"
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     {/* Период отпуска */}
-                    <div className="period-group">
-                        <div className="form-group">
-                            <label htmlFor="startDate">Начало отпуска *</label>
-                            <input
-                                type="date"
-                                id="startDate"
-                                name="startDate"
-                                value={formData.startDate}
-                                onChange={handleChange}
-                                required
-                                className="date-input"
-                            />
-                        </div>
+                    {formData.orderTypeIsVacation && (
+                        <div className="period-group">
+                            <div className="form-group">
+                                <label htmlFor="startDate">Начало отпуска *</label>
+                                <input
+                                    type="date"
+                                    id="startDate"
+                                    name="startDate"
+                                    value={formData.startDate}
+                                    required
+                                    onChange={handleChange}
+                                    className="date-input"
+                                />
+                            </div>
 
-                        <div className="form-group">
-                            <label htmlFor="endDate">Окончание отпуска *</label>
-                            <input
-                                type="date"
-                                id="endDate"
-                                name="endDate"
-                                value={formData.endDate}
-                                onChange={handleChange}
-                                required
-                                min={formData.startDate}
-                                className="date-input"
-                            />
+                            <div className="form-group">
+                                <label htmlFor="endDate">Окончание отпуска *</label>
+                                <input
+                                    type="date"
+                                    id="endDate"
+                                    name="endDate"
+                                    value={formData.endDate}
+                                    onChange={handleChange}
+                                    required
+                                    min={formData.startDate}
+                                    className="date-input"
+                                />
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Информация о длительности */}
                     {formData.startDate && formData.endDate && (
@@ -147,7 +199,7 @@ const Vacation: React.FC = () => {
                             type="button"
                             className="btn btn-primary"
                             onClick={handleSubmit}
-                            disabled={!formData.startDate || !formData.endDate}
+                            disabled={!formData.orderTypeIsVacation && !formData.orderTypeIsChange}
                         >
                             Отправить заявление
                         </button>

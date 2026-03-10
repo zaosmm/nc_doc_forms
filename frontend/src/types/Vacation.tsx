@@ -1,6 +1,7 @@
-export  interface VacationRequest {
+export interface VacationRequest {
     date_from: string;
     date_to: string;
     date_req: string;
-    vacation_type: string;
+    order_type_is_vacation: boolean,
+    order_type_is_change: boolean,
 }
