@@ -44,7 +44,7 @@ const Vacation: React.FC = () => {
     const handleSubmit = async () => {
         setLoading(true);
         try {
-            await vacationAPI.sendData({
+            const response = await vacationAPI.sendData({
                 date_from: formData.startDate,
                 date_to: formData.endDate,
                 date_req: formData.reqDate,
@@ -52,6 +52,38 @@ const Vacation: React.FC = () => {
                 order_type_is_change: formData.orderTypeIsChange,
             });
             toast.success('Заявление составлено!');
+
+            // Получаем имя файла из заголовка Content-Disposition
+            const contentDisposition = response.headers?.['content-disposition'];
+            let filename = 'zayavlenie.docx'; // имя по умолчанию
+
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (filenameMatch && filenameMatch[1]) {
+                    // Убираем кавычки, если они есть
+                    filename = filenameMatch[1].replace(/['"]/g, '');
+                }
+            }
+            const contentType = response.headers?.['content-type'] ||
+                           'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+            // Создаем blob из полученных данных
+            const blob = new Blob([response.data], {type: contentType});
+
+            // Создаем URL для blob
+            const url = window.URL.createObjectURL(blob);
+
+            // Создаем временную ссылку для скачивания
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename; // имя файла
+
+            // Добавляем ссылку в DOM, кликаем и удаляем
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Очищаем созданный URL
+            window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Ошибка:', error);
         } finally {

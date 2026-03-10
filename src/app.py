@@ -1,9 +1,12 @@
+import datetime
+import io
 import typing
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+from docxtpl import DocxTemplate
 from fastapi import FastAPI, Request, Depends
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 from nc_py_api import NextcloudApp, AsyncNextcloudApp
 from nc_py_api.ex_app import LogLvl, set_handlers, AppAPIAuthMiddleware, anc_app
 from starlette.middleware.cors import CORSMiddleware
@@ -88,8 +91,30 @@ async def index(data: vacation.Data,
 
     user_info = await nc.users.get_user(user)
 
-    return JSONResponse(content={
+    templates_dir = f"Шаблоны/Заявления"
+    vacation_fn = f"{templates_dir}/заявление_на_отпуск.docx"
+    content = await nc.files.download(vacation_fn)
+
+    doc = DocxTemplate(io.BytesIO(content))
+    context = {
         'status': 'ok',
         'user': user_info._raw_data,
         'data': data.model_dump()
-    })
+    }
+    doc.render(context)
+
+    output = io.BytesIO()
+    doc.save(output)
+    output.seek(0)
+
+    async def iterfile():
+        yield output.read()
+
+    return StreamingResponse(
+        iterfile(),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={
+            "Content-Disposition": f"attachment; filename=\"zayavlenie_{datetime.datetime.now().strftime('%Y-%m-%d')}\"",
+            "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        }
+    )

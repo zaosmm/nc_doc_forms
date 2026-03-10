@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import {VacationRequest} from "../types/Vacation";
 import config from "../config";
+import {ApiResponse} from "../types/Common";
 
 class ApiClient {
     private client: AxiosInstance;
@@ -42,7 +43,9 @@ class ApiClient {
 const api = new ApiClient();
 
 export const vacationAPI = {
-    sendData: (data: VacationRequest) => api.post('/vacation', data)
+    sendData: (data: VacationRequest) => {
+        return api.post<ApiResponse>('/vacation', data);
+    }
 };
 
 export default api;
