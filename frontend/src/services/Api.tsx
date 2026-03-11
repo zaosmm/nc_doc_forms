@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import axios, {AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError} from 'axios';
 import {VacationRequest} from "../types/Vacation";
 import config from "../config";
 import {ApiResponse} from "../types/Common";
@@ -23,9 +23,19 @@ class ApiClient {
         return response.data;
     }
 
+    public async getFile<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse> {
+        const response = await this.client.get<T>(url, config);
+        return response;
+    }
+
     public async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
         const response = await this.client.post<T>(url, data, config);
         return response.data;
+    }
+
+    public async postFileResponse<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse> {
+        const response = await this.client.post<T>(url, data, config);
+        return response;
     }
 
     public async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
@@ -44,8 +54,15 @@ const api = new ApiClient();
 
 export const vacationAPI = {
     sendData: (data: VacationRequest) => {
-        return api.post<ApiResponse>('/vacation', data);
-    }
+        return api.postFileResponse('/vacation', data, {
+            responseType: 'blob'
+        });
+    },
+    getTemplate: () => {
+        return api.getFile('/vacation/template', {
+            responseType: 'blob'
+        });
+    },
 };
 
 export default api;

@@ -32,6 +32,8 @@ const DayOff: React.FC = () => {
                 date_from: formData.startDate,
                 date_to: formData.endDate,
                 date_req: formData.reqDate,
+                date_change: '',
+                year_period: '',
                 order_type_is_vacation: formData.orderTypeIsVacation,
                 order_type_is_change: formData.orderTypeIsChange,
             });

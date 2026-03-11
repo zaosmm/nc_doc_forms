@@ -4,6 +4,7 @@ import "../css/Vacation.css";
 import {format} from 'date-fns';
 import {vacationAPI} from "../services/Api";
 import toast from 'react-hot-toast';
+import {blob} from "node:stream/consumers";
 
 const Vacation: React.FC = () => {
     const navigate = useNavigate();
@@ -48,10 +49,13 @@ const Vacation: React.FC = () => {
                 date_from: formData.startDate,
                 date_to: formData.endDate,
                 date_req: formData.reqDate,
+                date_change: formData.changeDate,
+                year_period: formData.yearPeriod.toString(),
                 order_type_is_vacation: formData.orderTypeIsVacation,
                 order_type_is_change: formData.orderTypeIsChange,
             });
             toast.success('Заявление составлено!');
+
 
             // Получаем имя файла из заголовка Content-Disposition
             const contentDisposition = response.headers?.['content-disposition'];
@@ -64,13 +68,48 @@ const Vacation: React.FC = () => {
                     filename = filenameMatch[1].replace(/['"]/g, '');
                 }
             }
-            const contentType = response.headers?.['content-type'] ||
-                           'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-            // Создаем blob из полученных данных
-            const blob = new Blob([response.data], {type: contentType});
 
             // Создаем URL для blob
-            const url = window.URL.createObjectURL(blob);
+            const url = window.URL.createObjectURL(response.data);
+
+            // Создаем временную ссылку для скачивания
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename; // имя файла
+
+            // Добавляем ссылку в DOM, кликаем и удаляем
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Очищаем созданный URL
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Ошибка:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getTemplate = async () => {
+        setLoading(true);
+        try {
+            const response = await vacationAPI.getTemplate();
+
+            // Получаем имя файла из заголовка Content-Disposition
+            const contentDisposition = response.headers?.['content-disposition'];
+            let filename = 'zayavlenie.docx'; // имя по умолчанию
+
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (filenameMatch && filenameMatch[1]) {
+                    // Убираем кавычки, если они есть
+                    filename = filenameMatch[1].replace(/['"]/g, '');
+                }
+            }
+
+            // Создаем URL для blob
+            const url = window.URL.createObjectURL(response.data);
 
             // Создаем временную ссылку для скачивания
             const link = document.createElement('a');
