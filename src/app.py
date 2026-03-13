@@ -147,10 +147,22 @@ async def index(data: vacation.Data,
     user_father_name_gen = grammar.decline(user_father_name, "gen")
 
     data_payload = data.model_dump()
-    date_from = datetime.strptime(data_payload.get('date_from'), "%Y-%m-%d")
-    date_to = datetime.strptime(data_payload.get('date_to'), "%Y-%m-%d")
-    date_req = datetime.strptime(data_payload.get('date_req'), "%Y-%m-%d")
-    date_change = datetime.strptime(data_payload.get('date_change'), "%Y-%m-%d")
+    try:
+        date_from = datetime.strptime(data_payload.get('date_from'), "%Y-%m-%d")
+    except:
+        date_from = None
+    try:
+        date_to = datetime.strptime(data_payload.get('date_to'), "%Y-%m-%d")
+    except:
+        date_to = None
+    try:
+        date_req = datetime.strptime(data_payload.get('date_req'), "%Y-%m-%d")
+    except:
+        date_req = None
+    try:
+        date_change = datetime.strptime(data_payload.get('date_change'), "%Y-%m-%d")
+    except:
+        date_change = None
     year_period = data_payload.get('year_period')
 
     months_rus_gen = [
@@ -169,27 +181,27 @@ async def index(data: vacation.Data,
     ]
 
     date_from_info = {
-        'day': date_from.day,
-        'month': months_rus_gen[date_from.month - 1],
-        'year': date_from.year,
+        'day': date_from.day if date_from is not None else '',
+        'month': months_rus_gen[date_from.month - 1] if date_from is not None else '',
+        'year': date_from.year if date_from is not None else '',
     }
 
     date_req_info = {
-        'day': date_req.day,
-        'month': months_rus_gen[date_req.month - 1],
-        'year': date_req.year,
+        'day': date_req.day if date_req is not None else '',
+        'month': months_rus_gen[date_req.month - 1] if date_req is not None else '',
+        'year': date_req.year if date_req is not None else '',
     }
 
     date_to_info = {
-        'day': date_to.day,
-        'month': months_rus_gen[date_to.month - 1],
-        'year': date_to.year,
+        'day': date_to.day if date_to is not None else '',
+        'month': months_rus_gen[date_to.month - 1] if date_to is not None else '',
+        'year': date_to.year if date_to is not None else '',
     }
 
     date_change_info = {
-        'day': date_change.day,
-        'month': months_rus_gen[date_change.month - 1],
-        'year': date_change.year,
+        'day': date_change.day if date_change is not None else '',
+        'month': months_rus_gen[date_change.month - 1] if date_change is not None else '',
+        'year': date_change.year if date_change is not None else '',
     }
 
     context = {
