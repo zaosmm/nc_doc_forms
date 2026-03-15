@@ -4,16 +4,20 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 
-from docxtpl import DocxTemplate
 from fastapi import FastAPI, Request, Depends
 from fastapi.responses import StreamingResponse
-from marmel_grammar import MarmelGrammar
+
+from pytrovich.detector import PetrovichGenderDetector
+from pytrovich.maker import PetrovichDeclinationMaker
+from pytrovich.enums import NamePart, Case
+
 from nc_py_api import NextcloudApp, AsyncNextcloudApp
 from nc_py_api.ex_app import LogLvl, set_handlers, AppAPIAuthMiddleware, anc_app
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
+from src.docs import generate_doc
 from src.domain import vacation
 from src.domain import vacation_wp
 
@@ -95,7 +99,6 @@ async def vacation_template(nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_
 
     user_info = await nc.users.get_user(user)
 
-
     vacation_fn = f"{NC_DOC_TEMPLATES_DIR}/заявление_на_отпуск.docx"
     content = await nc.files.download(vacation_fn)
 
@@ -114,15 +117,10 @@ async def vacation_template(nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_
 
 @APP.post("/api/vacation")
 async def vacation(data: vacation.Data,
-                nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
+                   nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
     user = await nc.user
 
     user_info = await nc.users.get_user(user)
-
-    vacation_fn = f"{NC_DOC_TEMPLATES_DIR}/заявление_на_отпуск.docx"
-    content = await nc.files.download(vacation_fn)
-
-    doc = DocxTemplate(io.BytesIO(content))
 
     user_data = user_info._raw_data
     user_displayname = user_data.get('displayname')
@@ -140,10 +138,13 @@ async def vacation(data: vacation.Data,
     if len(_displayname) > 2:
         user_father_name = _displayname[2]
 
-    grammar = MarmelGrammar()
-    user_name_gen = grammar.decline(user_name, "gen")
-    user_surname_gen = grammar.decline(user_surname, "gen")
-    user_father_name_gen = grammar.decline(user_father_name, "gen")
+    detector = PetrovichGenderDetector()
+    gender = detector.detect(firstname=user_name)
+
+    maker = PetrovichDeclinationMaker()
+    user_name_gen = maker.make(NamePart.FIRSTNAME, gender, Case.GENITIVE, user_name.lower()).capitalize()
+    user_surname_gen = maker.make(NamePart.LASTNAME, gender, Case.GENITIVE, user_surname.lower()).capitalize()
+    user_father_name_gen = maker.make(NamePart.MIDDLENAME, gender, Case.GENITIVE, user_father_name.lower()).capitalize()
 
     data_payload = data.model_dump()
     try:
@@ -222,11 +223,11 @@ async def vacation(data: vacation.Data,
         'year_period': year_period,
         'data': data.model_dump()
     }
-    doc.render(context)
 
-    output = io.BytesIO()
-    doc.save(output)
-    output.seek(0)
+    # Формируем путь к шаблону заявления.
+    vacation_fn = f"{NC_DOC_TEMPLATES_DIR}/заявление_на_отпуск.docx"
+    content = await nc.files.download(vacation_fn)
+    output = generate_doc(content, context, meta_author=user_displayname, meta_title='Заявление на отпуск', meta_subject='Заявление на отпуск с переносом даты', meta_keywords='заявление,отпуск')
 
     return StreamingResponse(
         output,
@@ -240,19 +241,11 @@ async def vacation(data: vacation.Data,
 
 @APP.post("/api/vacation-wp")
 async def vacation_wp(data: vacation_wp.Data,
-                nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
+                      nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
     user = await nc.user
 
     # Получаем данные авторизованного пользователя.
     user_info = await nc.users.get_user(user)
-
-    # Формируем путь к шаблону заявления.
-    # Шаблон должен быть расположен в общем каталоге файлов "Шаблоны/Заявления/заявление_на_отпуск_бс.docx"
-    vacation_fn = f"{NC_DOC_TEMPLATES_DIR}/заявление_на_отпуск_бс.docx"
-    content = await nc.files.download(vacation_fn)
-
-    # Создаем объект документа.
-    doc = DocxTemplate(io.BytesIO(content))
 
     # Получаем данные для шаблона о пользователе.
     user_data = user_info._raw_data
@@ -273,10 +266,12 @@ async def vacation_wp(data: vacation_wp.Data,
         user_father_name = _displayname[2]
 
     # Родительный падеж.
-    grammar = MarmelGrammar()
-    user_name_gen = grammar.decline(user_name, "gen")
-    user_surname_gen = grammar.decline(user_surname, "gen")
-    user_father_name_gen = grammar.decline(user_father_name, "gen")
+    detector = PetrovichGenderDetector()
+    gender = detector.detect(firstname=user_name)
+    maker = PetrovichDeclinationMaker()
+    user_name_gen = maker.make(NamePart.FIRSTNAME, gender, Case.GENITIVE, user_name.lower()).capitalize()
+    user_surname_gen = maker.make(NamePart.LASTNAME, gender, Case.GENITIVE, user_surname.lower()).capitalize()
+    user_father_name_gen = maker.make(NamePart.MIDDLENAME, gender, Case.GENITIVE, user_father_name.lower()).capitalize()
 
     # Обработка данных, полученных от клиента - даты.
     data_payload = data.model_dump()
@@ -350,13 +345,12 @@ async def vacation_wp(data: vacation_wp.Data,
         'date_to': date_to_info,
         'date_req': date_req_info
     }
-    # Рендер документа из шаблона и данных.
-    doc.render(context)
 
-    # Подготовка для передачи документа в ответе клиенту.
-    output = io.BytesIO()
-    doc.save(output)
-    output.seek(0)
+    # Формируем путь к шаблону заявления.
+    # Шаблон должен быть расположен в общем каталоге файлов "Шаблоны/Заявления/заявление_на_отпуск_бс.docx"
+    vacation_fn = f"{NC_DOC_TEMPLATES_DIR}/заявление_на_отпуск_бс.docx"
+    content = await nc.files.download(vacation_fn)
+    output = generate_doc(content, context, meta_author=user_displayname, meta_title='Заявление на отпуск', meta_subject='Заявление на отпуск без сохранения заработной платы', meta_keywords='заявление,отпуск')
 
     # Отправляем ответ клиенту.
     return StreamingResponse(
