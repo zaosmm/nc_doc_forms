@@ -1,11 +1,10 @@
 import React from 'react';
-import {BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom';
+import {BrowserRouter as Router, Routes, Route} from 'react-router-dom';
 import Forms from './components/Forms'
 import Vacation from './components/Vacation'
+import VacationWP from './components/VacationWP'
 import {Toaster} from 'react-hot-toast';
 import './App.css';
-import DayOff from "./components/DayOff";
-import BusinessTrip from "./components/BusinessTrip";
 
 const App: React.FC = () => {
     return (
@@ -24,8 +23,7 @@ const App: React.FC = () => {
             <Routes>
                 <Route path="/" element={<Forms/>}/>
                 <Route path="/vacation" element={<Vacation/>}/>
-                <Route path="/business-trip" element={<BusinessTrip/>}/>
-                <Route path="/day-off" element={<DayOff/>}/>
+                <Route path="/vacation-wp" element={<VacationWP/>}/>
             </Routes>
         </Router>);
 }

@@ -1,20 +1,21 @@
-from datetime import datetime
 import io
-import json
 import typing
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 
 from docxtpl import DocxTemplate
 from fastapi import FastAPI, Request, Depends
-from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 from marmel_grammar import MarmelGrammar
 from nc_py_api import NextcloudApp, AsyncNextcloudApp
 from nc_py_api.ex_app import LogLvl, set_handlers, AppAPIAuthMiddleware, anc_app
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
+
 from src.domain import vacation
+from src.domain import vacation_wp
 
 # Константы
 APP_NAME = "nc_doc_forms"
@@ -22,6 +23,8 @@ TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 
 ASSETS_DIR = Path(__file__).parent.parent / "static"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+NC_DOC_TEMPLATES_DIR = f"/Шаблоны/Заявления"
 
 
 # Функция, которая вызывается при включении/выключении приложения
@@ -87,14 +90,13 @@ async def index(request: Request,
 
 
 @APP.get("/api/vacation/template")
-async def index(nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
+async def vacation_template(nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
     user = await nc.user
 
     user_info = await nc.users.get_user(user)
 
-    templates_dir = f"/Шаблоны/Заявления"
 
-    vacation_fn = f"{templates_dir}/заявление_на_отпуск.docx"
+    vacation_fn = f"{NC_DOC_TEMPLATES_DIR}/заявление_на_отпуск.docx"
     content = await nc.files.download(vacation_fn)
 
     resp = io.BytesIO(content)
@@ -111,17 +113,14 @@ async def index(nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
 
 
 @APP.post("/api/vacation")
-async def index(data: vacation.Data,
+async def vacation(data: vacation.Data,
                 nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
     user = await nc.user
 
     user_info = await nc.users.get_user(user)
 
-    templates_dir = f"/Шаблоны/Заявления"
-    vacation_fn = f"{templates_dir}/заявление_на_отпуск.docx"
+    vacation_fn = f"{NC_DOC_TEMPLATES_DIR}/заявление_на_отпуск.docx"
     content = await nc.files.download(vacation_fn)
-
-    print(json.dumps(user_info._raw_data, ensure_ascii=False))
 
     doc = DocxTemplate(io.BytesIO(content))
 
@@ -229,6 +228,137 @@ async def index(data: vacation.Data,
     doc.save(output)
     output.seek(0)
 
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={
+            "Content-Disposition": f"attachment; filename=\"zayavlenie_{datetime.now().strftime('%Y-%m-%d')}\"",
+            "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        }
+    )
+
+
+@APP.post("/api/vacation-wp")
+async def vacation_wp(data: vacation_wp.Data,
+                nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
+    user = await nc.user
+
+    # Получаем данные авторизованного пользователя.
+    user_info = await nc.users.get_user(user)
+
+    # Формируем путь к шаблону заявления.
+    # Шаблон должен быть расположен в общем каталоге файлов "Шаблоны/Заявления/заявление_на_отпуск_бс.docx"
+    vacation_fn = f"{NC_DOC_TEMPLATES_DIR}/заявление_на_отпуск_бс.docx"
+    content = await nc.files.download(vacation_fn)
+
+    # Создаем объект документа.
+    doc = DocxTemplate(io.BytesIO(content))
+
+    # Получаем данные для шаблона о пользователе.
+    user_data = user_info._raw_data
+    user_displayname = user_data.get('displayname')
+    user_organisation = user_data.get('organisation')
+    user_role = user_data.get('role')
+
+    # Проверка и предобработка данных.
+    _displayname = user_displayname.split(' ')
+    user_name = ''
+    user_surname = ''
+    user_father_name = ''
+    if len(_displayname) > 0:
+        user_surname = _displayname[0]
+    if len(_displayname) > 1:
+        user_name = _displayname[1]
+    if len(_displayname) > 2:
+        user_father_name = _displayname[2]
+
+    # Родительный падеж.
+    grammar = MarmelGrammar()
+    user_name_gen = grammar.decline(user_name, "gen")
+    user_surname_gen = grammar.decline(user_surname, "gen")
+    user_father_name_gen = grammar.decline(user_father_name, "gen")
+
+    # Обработка данных, полученных от клиента - даты.
+    data_payload = data.model_dump()
+
+    # Набор названий месяцев на русском в родительном падеже.
+    months_rus_gen = [
+        'января',
+        'февраля',
+        'марта',
+        'апреля',
+        'мая',
+        'июня',
+        'июля',
+        'августа',
+        'сентября',
+        'октября',
+        'ноября',
+        'декабря',
+    ]
+
+    # Дата "С".
+    try:
+        date_from = datetime.strptime(data_payload.get('date_from'), "%Y-%m-%d")
+    except:
+        date_from = None
+
+    date_from_info = {
+        'day': date_from.day if date_from is not None else '',
+        'month': months_rus_gen[date_from.month - 1] if date_from is not None else '',
+        'year': date_from.year if date_from is not None else '',
+    }
+
+    # Дата "По".
+    try:
+        date_to = datetime.strptime(data_payload.get('date_to'), "%Y-%m-%d")
+    except:
+        date_to = None
+
+    date_to_info = {
+        'day': date_to.day if date_to is not None else '',
+        'month': months_rus_gen[date_to.month - 1] if date_to is not None else '',
+        'year': date_to.year if date_to is not None else '',
+    }
+
+    # Дата составления.
+    try:
+        date_req = datetime.strptime(data_payload.get('date_req'), "%Y-%m-%d")
+    except:
+        date_req = None
+
+    date_req_info = {
+        'day': date_req.day if date_req is not None else '',
+        'month': months_rus_gen[date_req.month - 1] if date_req is not None else '',
+        'year': date_req.year if date_req is not None else '',
+    }
+
+    # Набор данных, которые отправим в шаблон документа. Их нужно прописывать в шаблоне.
+    context = {
+        'status': 'ok',
+        'user': {
+            'name': user_name,
+            'name_gen': user_name_gen,
+            'surname': user_surname,
+            'surname_gen': user_surname_gen,
+            'father_name': user_father_name,
+            'father_name_gen': user_father_name_gen,
+            'role': user_role,
+            'unit': user_organisation,
+        },
+        'date_from': date_from_info,
+        'date_to': date_to_info,
+        'date_req': date_req_info
+    }
+    # Рендер документа из шаблона и данных.
+    doc.render(context)
+
+    # Подготовка для передачи документа в ответе клиенту.
+    output = io.BytesIO()
+    doc.save(output)
+    output.seek(0)
+
+    # Отправляем ответ клиенту.
     return StreamingResponse(
         output,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",

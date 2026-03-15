@@ -1,7 +1,11 @@
-import axios, {AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError} from 'axios';
-import {VacationRequest} from "../types/Vacation";
+import axios, {AxiosInstance, AxiosRequestConfig, AxiosResponse} from 'axios';
 import config from "../config";
-import {ApiResponse} from "../types/Common";
+
+// Данные для заявления на отпуск.
+import {VacationRequest} from "../types/Vacation";
+
+// Данные для заявления на отпуск без сохранения ЗП.
+import {VacationWPRequest} from "../types/VacationWP";
 
 class ApiClient {
     private client: AxiosInstance;
@@ -60,6 +64,14 @@ export const vacationAPI = {
     },
     getTemplate: () => {
         return api.getFile('/vacation/template', {
+            responseType: 'blob'
+        });
+    },
+};
+
+export const vacationWpAPI = {
+    sendData: (data: VacationWPRequest) => {
+        return api.postFileResponse('/vacation-wp', data, {
             responseType: 'blob'
         });
     },
