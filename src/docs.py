@@ -1,9 +1,4 @@
 import io
-
-from docx import Document
-from docxtpl import DocxTemplate
-
-import io
 from docx import Document
 from docxtpl import DocxTemplate
 
