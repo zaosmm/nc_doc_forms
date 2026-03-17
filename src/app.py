@@ -145,6 +145,7 @@ async def vacation(data: vacation.Data,
     user_name_gen = maker.make(NamePart.FIRSTNAME, gender, Case.GENITIVE, user_name.lower()).capitalize()
     user_surname_gen = maker.make(NamePart.LASTNAME, gender, Case.GENITIVE, user_surname.lower()).capitalize()
     user_father_name_gen = maker.make(NamePart.MIDDLENAME, gender, Case.GENITIVE, user_father_name.lower()).capitalize()
+    short_name = f'{user_name[0].upper()}. {user_father_name[0].upper()}. {user_surname.capitalize()}'
 
     data_payload = data.model_dump()
     try:
@@ -213,6 +214,7 @@ async def vacation(data: vacation.Data,
             'surname_gen': user_surname_gen,
             'father_name': user_father_name,
             'father_name_gen': user_father_name_gen,
+            'short_name': short_name,
             'role': user_role,
             'unit': user_organisation,
         },
@@ -272,6 +274,7 @@ async def vacation_wp(data: vacation_wp.Data,
     user_name_gen = maker.make(NamePart.FIRSTNAME, gender, Case.GENITIVE, user_name.lower()).capitalize()
     user_surname_gen = maker.make(NamePart.LASTNAME, gender, Case.GENITIVE, user_surname.lower()).capitalize()
     user_father_name_gen = maker.make(NamePart.MIDDLENAME, gender, Case.GENITIVE, user_father_name.lower()).capitalize()
+    short_name = f'{user_name[0].upper()}. {user_father_name[0].upper()}. {user_surname.capitalize()}'
 
     # Обработка данных, полученных от клиента - даты.
     data_payload = data.model_dump()
@@ -338,6 +341,7 @@ async def vacation_wp(data: vacation_wp.Data,
             'surname_gen': user_surname_gen,
             'father_name': user_father_name,
             'father_name_gen': user_father_name_gen,
+            'short_name': short_name,
             'role': user_role,
             'unit': user_organisation,
         },
