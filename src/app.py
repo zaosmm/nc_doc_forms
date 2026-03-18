@@ -1,22 +1,21 @@
 import io
 import typing
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Depends
-from fastapi.responses import StreamingResponse
-
-from pytrovich.detector import PetrovichGenderDetector
-from pytrovich.maker import PetrovichDeclinationMaker
-from pytrovich.enums import NamePart, Case
-
+from fastapi.responses import StreamingResponse, JSONResponse
 from nc_py_api import NextcloudApp, AsyncNextcloudApp
-from nc_py_api.ex_app import LogLvl, set_handlers, AppAPIAuthMiddleware, anc_app
+from nc_py_api.ex_app import LogLvl, set_handlers, AppAPIAuthMiddleware, anc_app, nc_app
+from pytrovich.detector import PetrovichGenderDetector
+from pytrovich.enums import NamePart, Case
+from pytrovich.maker import PetrovichDeclinationMaker
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
+from src.calendars import fill_event
 from src.docs import generate_doc
 from src.domain import vacation
 from src.domain import vacation_wp
@@ -229,7 +228,8 @@ async def vacation(data: vacation.Data,
     # Формируем путь к шаблону заявления.
     vacation_fn = f"{NC_DOC_TEMPLATES_DIR}/заявление_на_отпуск.docx"
     content = await nc.files.download(vacation_fn)
-    output = generate_doc(content, context, meta_author=user_displayname, meta_title='Заявление на отпуск', meta_subject='Заявление на отпуск с переносом даты', meta_keywords='заявление,отпуск')
+    output = generate_doc(content, context, meta_author=user_displayname, meta_title='Заявление на отпуск',
+                          meta_subject='Заявление на отпуск с переносом даты', meta_keywords='заявление,отпуск')
 
     return StreamingResponse(
         output,
@@ -354,7 +354,9 @@ async def vacation_wp(data: vacation_wp.Data,
     # Шаблон должен быть расположен в общем каталоге файлов "Шаблоны/Заявления/заявление_на_отпуск_бс.docx"
     vacation_fn = f"{NC_DOC_TEMPLATES_DIR}/заявление_на_отпуск_бс.docx"
     content = await nc.files.download(vacation_fn)
-    output = generate_doc(content, context, meta_author=user_displayname, meta_title='Заявление на отпуск', meta_subject='Заявление на отпуск без сохранения заработной платы', meta_keywords='заявление,отпуск')
+    output = generate_doc(content, context, meta_author=user_displayname, meta_title='Заявление на отпуск',
+                          meta_subject='Заявление на отпуск без сохранения заработной платы',
+                          meta_keywords='заявление,отпуск')
 
     # Отправляем ответ клиенту.
     return StreamingResponse(
@@ -365,3 +367,24 @@ async def vacation_wp(data: vacation_wp.Data,
             "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         }
     )
+
+
+@APP.get("/api/calendar/events/future")
+async def get_events(nc: typing.Annotated[NextcloudApp, Depends(nc_app)]):
+    principal = nc.cal.principal()
+    calendars = principal.get_calendars()
+
+    event_list2 = []
+    for calendar in calendars:
+        evts = calendar.search(
+            start=datetime.now(),
+            end=datetime.now() + timedelta(days=7),
+            event=True,
+        )
+        for e in evts:
+            for component in e.icalendar_instance.walk():
+                if component.name != "VEVENT":
+                    continue
+                event_list2.append(fill_event(component, calendar))
+
+    return JSONResponse(content=event_list2)
