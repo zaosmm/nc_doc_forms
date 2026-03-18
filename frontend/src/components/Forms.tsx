@@ -8,6 +8,7 @@ const Forms: React.FC = () => {
     const forms = [
         { id: "vacation", title: "Заявление на отпуск", path: "/vacation" },
         { id: "vacation-wp", title: "Заявление на отпуск без сохранения зп", path: "/vacation-wp" },
+        { id: "business-trip", title: "Служебная записка на командировку", path: "/business-trip" },
     ];
 
     const handleNavigation = (path: string) => {

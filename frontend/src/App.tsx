@@ -3,6 +3,7 @@ import {BrowserRouter as Router, Routes, Route} from 'react-router-dom';
 import Forms from './components/Forms'
 import Vacation from './components/Vacation'
 import VacationWP from './components/VacationWP'
+import BusinessTrip from './components/BusinessTrip'
 import {Toaster} from 'react-hot-toast';
 import './App.css';
 
@@ -24,6 +25,7 @@ const App: React.FC = () => {
                 <Route path="/" element={<Forms/>}/>
                 <Route path="/vacation" element={<Vacation/>}/>
                 <Route path="/vacation-wp" element={<VacationWP/>}/>
+                <Route path="/business-trip" element={<BusinessTrip/>}/>
             </Routes>
         </Router>);
 }
