@@ -7,6 +7,7 @@ import {VacationRequest} from "../types/Vacation";
 // Данные для заявления на отпуск без сохранения ЗП.
 import {VacationWPRequest} from "../types/VacationWP";
 import {BusinessTripRequest} from "../types/BusinessTrip";
+import {UseCarRequest} from "../types/UseCar";
 
 class ApiClient {
     private client: AxiosInstance;
@@ -79,14 +80,27 @@ export const vacationWpAPI = {
 };
 
 
+export const calendarAPI = {
+    getEvents: () => {
+        return api.get('/calendar/events/future');
+    },
+};
+
+
 export const businessTripAPI = {
     sendData: (data: BusinessTripRequest) => {
         return api.postFileResponse('/business-trip', data, {
             responseType: 'blob'
         });
     },
-    getEvents: () => {
-        return api.get('/calendar/events/future');
+};
+
+
+export const useCarAPI = {
+    sendData: (data: UseCarRequest) => {
+        return api.postFileResponse('/use-car', data, {
+            responseType: 'blob'
+        });
     },
 };
 

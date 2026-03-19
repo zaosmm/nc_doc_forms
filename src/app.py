@@ -17,7 +17,7 @@ from starlette.templating import Jinja2Templates
 
 from src.calendars import fill_event
 from src.docs import generate_doc
-from src.domain import vacation, business_trip
+from src.domain import vacation, business_trip, use_car
 from src.domain import vacation_wp
 
 # Константы
@@ -513,6 +513,169 @@ async def business_trip(data: business_trip.Data,
     output = generate_doc(content, context, meta_author=user_displayname,
                           meta_title='Служебная записка на командировку',
                           meta_subject='Служебная записка на командировку',
+                          meta_keywords='служебная записка')
+
+    # Отправляем ответ клиенту.
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={
+            "Content-Disposition": f"attachment; filename=\"sz_{datetime.now().strftime('%Y-%m-%d')}\"",
+            "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        }
+    )
+
+
+@APP.post("/api/use-car")
+async def use_car(data: use_car.Data,
+                  nc: typing.Annotated[AsyncNextcloudApp, Depends(anc_app)]):
+    user = await nc.user
+
+    # Получаем данные авторизованного пользователя.
+    user_info = await nc.users.get_user(user)
+
+    # Получаем данные для шаблона о пользователе.
+    user_data = user_info._raw_data
+    user_displayname = user_data.get('displayname')
+    user_organisation = user_data.get('organisation')
+    user_role = user_data.get('role')
+
+    # Проверка и предобработка данных.
+    _displayname = user_displayname.split(' ')
+    user_name = ''
+    user_surname = ''
+    user_father_name = ''
+    if len(_displayname) > 0:
+        user_surname = _displayname[0]
+    if len(_displayname) > 1:
+        user_name = _displayname[1]
+    if len(_displayname) > 2:
+        user_father_name = _displayname[2]
+
+    # Родительный падеж.
+    detector = PetrovichGenderDetector()
+    gender = detector.detect(firstname=user_name)
+    maker = PetrovichDeclinationMaker()
+    user_name_gen = maker.make(NamePart.FIRSTNAME, gender, Case.GENITIVE, user_name.lower()).capitalize()
+    user_surname_gen = maker.make(NamePart.LASTNAME, gender, Case.GENITIVE, user_surname.lower()).capitalize()
+    user_father_name_gen = maker.make(NamePart.MIDDLENAME, gender, Case.GENITIVE, user_father_name.lower()).capitalize()
+    short_name = f'{user_name[0].upper()}. {user_father_name[0].upper()}. {user_surname.capitalize()}'
+    user_fullname_gen = f'{user_surname_gen} {user_name_gen} {user_father_name_gen}'
+
+    # Обработка данных, полученных от клиента - даты.
+    data_payload = data.model_dump()
+
+    # Набор названий месяцев на русском в родительном падеже.
+    months_rus_gen = [
+        'января',
+        'февраля',
+        'марта',
+        'апреля',
+        'мая',
+        'июня',
+        'июля',
+        'августа',
+        'сентября',
+        'октября',
+        'ноября',
+        'декабря',
+    ]
+
+    week_days = [
+        'понедельник',
+        'вторник',
+        'среда',
+        'четверг',
+        'пятница',
+        'суббота',
+        'воскресенье',
+    ]
+
+    # Дата "С".
+    try:
+        date_from = datetime.strptime(data_payload.get('date_from'), "%Y-%m-%d")
+    except:
+        date_from = None
+
+    date_from_info = {
+        'day': date_from.day if date_from is not None else '',
+        'month': months_rus_gen[date_from.month - 1] if date_from is not None else '',
+        'year': date_from.year if date_from is not None else '',
+        'date': date_from.strftime("%d.%m.%Y") if date_from is not None else '',
+        'weekday': week_days[date_from.weekday()] if date_from is not None else '',
+    }
+
+    # Дата "По".
+    try:
+        date_to = datetime.strptime(data_payload.get('date_to'), "%Y-%m-%d")
+    except:
+        date_to = None
+
+    date_to_info = {
+        'day': date_to.day if date_to is not None else '',
+        'month': months_rus_gen[date_to.month - 1] if date_to is not None else '',
+        'year': date_to.year if date_to is not None else '',
+        'date': date_to.strftime("%d.%m.%Y") if date_to is not None else '',
+        'weekday': week_days[date_to.weekday()] if date_to is not None else '',
+    }
+
+    # Дата составления.
+    try:
+        date_req = datetime.strptime(data_payload.get('date_req'), "%Y-%m-%d")
+    except:
+        date_req = None
+
+    date_req_info = {
+        'day': date_req.day if date_req is not None else '',
+        'month': date_req.month if date_req is not None else '',
+        'year': date_req.year if date_req is not None else '',
+        'date': date_req.strftime("%d.%m.%Y") if date_req is not None else '',
+        'weekday': week_days[date_req.weekday()] if date_req is not None else '',
+    }
+
+    # Набор данных, которые отправим в шаблон документа. Их нужно прописывать в шаблоне.
+    context = {
+        'status': 'ok',
+        'user': {
+            'name': user_name,
+            'name_gen': user_name_gen,
+            'surname': user_surname,
+            'surname_gen': user_surname_gen,
+            'father_name': user_father_name,
+            'father_name_gen': user_father_name_gen,
+            'short_name': short_name,
+            'fullname_gen': user_fullname_gen,
+            'role': user_role,
+            'unit': user_organisation,
+        },
+        'from': {
+            'location': data.location_from if data.location_from else '',
+            'hour': f'{data.time_hour_from:02}' if data.time_hour_from else '',
+            'min': f'{data.time_min_from:02}' if data.time_min_from else '',
+            'date': date_from_info,
+        },
+        'to': {
+            'location': data.location_to if data.location_to else '',
+            'hour': f'{data.time_hour_to:02}' if data.time_hour_to else '',
+            'min': f'{data.time_min_to:02}' if data.time_min_to else '',
+            'date': date_to_info,
+        },
+        'total_days': data.total_days if data.total_days else '',
+        'is_private': data.is_private if data.is_private else '',
+        'is_another': data.is_another if data.is_another else '',
+        'car_title': data.car_title if data.car_title else '',
+        'car_number': data.car_number if data.car_number else '',
+        'car_owner': data.car_owner if data.car_owner else '',
+        'date_req': date_req_info,
+    }
+
+    # Формируем путь к шаблону заявления.
+    # Шаблон должен быть расположен в общем каталоге файлов "Шаблоны/Заявления/заявление_на_отпуск_бс.docx"
+    _fn = f"{NC_DOC_TEMPLATES_DIR}/сл_зап_использование_авто_в_командировке_ред_1.docx"
+    content = await nc.files.download(_fn)
+    output = generate_doc(content, context, meta_author=user_displayname,
+                          meta_title='Служебная записка на использование автомобиля',
+                          meta_subject='Служебная записка на использование автомобиля',
                           meta_keywords='служебная записка')
 
     # Отправляем ответ клиенту.

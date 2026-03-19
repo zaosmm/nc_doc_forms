@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../css/Vacation.css";
 import { format } from 'date-fns';
-import { businessTripAPI } from "../services/Api";
+import {businessTripAPI, calendarAPI} from "../services/Api";
 import toast from 'react-hot-toast';
 
 interface CalendarEvent {
@@ -39,7 +39,7 @@ const BusinessTrip: React.FC = () => {
     const fetchEvents = async () => {
         setLoadingEvents(true);
         try {
-            const response = await businessTripAPI.getEvents() as CalendarEvent[];
+            const response = await calendarAPI.getEvents() as CalendarEvent[];
             setEvents(response);
             setShowEvents(true);
             if (response.length === 0) {
