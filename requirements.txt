@@ -5,6 +5,7 @@ caldav==3.0.2
 charset-normalizer==3.4.5
 click==8.3.1
 dnspython==2.8.0
+docopt==0.6.2
 docxtpl==0.20.2
 fastapi==0.135.1
 filelock==3.25.0
@@ -20,6 +21,7 @@ MarkupSafe==3.0.3
 marmel-grammar==0.1.9
 nc-py-api==0.24.2
 niquests==3.17.0
+num2words==0.5.14
 packaging==26.0
 pluggy==1.6.0
 pydantic==2.12.5

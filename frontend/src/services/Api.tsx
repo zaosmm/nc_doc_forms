@@ -8,6 +8,7 @@ import {VacationRequest} from "../types/Vacation";
 import {VacationWPRequest} from "../types/VacationWP";
 import {BusinessTripRequest} from "../types/BusinessTrip";
 import {UseCarRequest} from "../types/UseCar";
+import {MoneyReceiveRequest} from "../types/MoneyReceive";
 
 class ApiClient {
     private client: AxiosInstance;
@@ -99,6 +100,14 @@ export const businessTripAPI = {
 export const useCarAPI = {
     sendData: (data: UseCarRequest) => {
         return api.postFileResponse('/use-car', data, {
+            responseType: 'blob'
+        });
+    },
+};
+
+export const moneyReceiveAPI = {
+    sendData: (data: MoneyReceiveRequest) => {
+        return api.postFileResponse('/money-receive', data, {
             responseType: 'blob'
         });
     },

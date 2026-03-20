@@ -7,6 +7,7 @@ import BusinessTrip from './components/BusinessTrip'
 import {Toaster} from 'react-hot-toast';
 import './App.css';
 import UseCar from "./components/UseCar";
+import MoneyReceive from "./components/MoneyReceive";
 
 const App: React.FC = () => {
     return (
@@ -28,6 +29,7 @@ const App: React.FC = () => {
                 <Route path="/vacation-wp" element={<VacationWP/>}/>
                 <Route path="/business-trip" element={<BusinessTrip/>}/>
                 <Route path="/use-car" element={<UseCar/>}/>
+                <Route path="/money-receive" element={<MoneyReceive/>}/>
             </Routes>
         </Router>);
 }

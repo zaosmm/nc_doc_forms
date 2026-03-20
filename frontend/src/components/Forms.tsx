@@ -10,6 +10,7 @@ const Forms: React.FC = () => {
         { id: "vacation-wp", title: "Заявление на отпуск без сохранения зп", path: "/vacation-wp" },
         { id: "business-trip", title: "Служебная записка на командировку", path: "/business-trip" },
         { id: "use-car", title: "Служебная записка на использование автомобиля", path: "/use-car" },
+        { id: "money-receive", title: "Заявка на получение денежных средств", path: "/money-receive" },
     ];
 
     const handleNavigation = (path: string) => {
